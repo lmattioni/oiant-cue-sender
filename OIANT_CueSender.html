@@ -271,7 +271,8 @@ function switchTab(t) {
 
 // ── WebSocket ──────────────────────────────────────────────────────────────
 function connect(ip, onOpen, onMessage, onClose) {
-  const url = `ws://${ip}:8766`;
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  const url = ip ? `${proto}://${ip}:8766` : `${proto}://${location.host}/ws`;
   try { ws = new WebSocket(url); } catch(e) { return null; }
   ws.onopen = onOpen;
   ws.onmessage = e => onMessage(JSON.parse(e.data));
