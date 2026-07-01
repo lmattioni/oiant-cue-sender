@@ -284,7 +284,6 @@ function send(data) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(data
 // ── Controller ─────────────────────────────────────────────────────────────
 function startController() {
   const ip = document.getElementById('ctrl-server-ip').value.trim();
-  if (!ip) { document.getElementById('ctrl-server-ip').focus(); return; }
   role = 'ctrl';
   hide('view-setup'); show('view-ctrl');
   renderCues(); renderSwatches();
@@ -300,7 +299,6 @@ function startController() {
 // ── Display ────────────────────────────────────────────────────────────────
 function startDisplay() {
   const ip = document.getElementById('disp-server-ip').value.trim();
-  if (!ip) { document.getElementById('disp-server-ip').focus(); return; }
   role = 'disp';
   // unlock audio on this gesture
   if (audioEnabled) getAudioCtx();
