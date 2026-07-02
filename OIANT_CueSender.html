@@ -5,370 +5,338 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>OIANT — Cue Sender</title>
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-  :root {
-    --bg: #0f0f14; --surface: #1a1a24; --surface2: #22222e;
-    --border: rgba(255,255,255,0.1); --border-strong: rgba(255,255,255,0.18);
-    --text: #e8e8f0; --text-muted: rgba(232,232,240,0.5); --text-dim: rgba(232,232,240,0.32);
-    --accent: #378ADD; --accent-bg: rgba(55,138,221,0.15);
-    --green: #639922; --radius: 10px;
-    --font: system-ui, -apple-system, 'Segoe UI', sans-serif;
-    --mono: 'SF Mono', 'Fira Code', monospace;
-  }
-  body { font-family: var(--font); background: var(--bg); color: var(--text); min-height: 100vh; }
-  .app { padding: 1.25rem 1rem; max-width: 520px; margin: 0 auto; }
-  .logo { font-size: 11px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase;
-    color: var(--text-dim); margin-bottom: 1.75rem; display: flex; align-items: center; gap: 8px; }
-  .logo::after { content: ''; flex: 1; height: 0.5px; background: var(--border); }
-  .tabs { display: flex; background: var(--surface); border-radius: var(--radius);
-    padding: 4px; gap: 4px; margin-bottom: 1.5rem; border: 0.5px solid var(--border); }
-  .tab { flex: 1; padding: 8px; text-align: center; font-size: 13px; font-weight: 500;
-    border-radius: 7px; cursor: pointer; color: var(--text-muted); transition: all 0.15s; user-select: none; }
-  .tab.active { background: var(--surface2); color: var(--text); }
-  .card { background: var(--surface); border: 0.5px solid var(--border); border-radius: 12px;
-    padding: 1.25rem 1.5rem; margin-bottom: 1rem; }
-  .card h2 { font-size: 15px; font-weight: 500; margin-bottom: 0.4rem; }
-  .card p { font-size: 13px; color: var(--text-muted); line-height: 1.55; margin-bottom: 0.75rem; }
-  input[type=text] { width: 100%; padding: 9px 13px; background: var(--surface2);
-    border: 0.5px solid var(--border-strong); border-radius: var(--radius);
-    color: var(--text); font-size: 14px; font-family: var(--font); outline: none; transition: border-color 0.15s; }
-  input[type=text]:focus { border-color: var(--accent); }
-  input[type=text]::placeholder { color: var(--text-dim); }
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 7px;
-    padding: 9px 16px; border-radius: var(--radius); border: 0.5px solid var(--border-strong);
-    background: transparent; color: var(--text); font-size: 13px; font-weight: 500;
-    font-family: var(--font); cursor: pointer; transition: background 0.12s, transform 0.1s; white-space: nowrap; }
-  .btn:hover { background: var(--surface2); }
-  .btn:active { transform: scale(0.97); }
-  .btn.primary { background: var(--accent); color: #fff; border-color: transparent; }
-  .btn.primary:hover { opacity: 0.88; }
-  .btn.go { background: var(--green); color: #fff; border-color: transparent;
-    font-size: 17px; font-weight: 600; padding: 16px; width: 100%;
-    border-radius: 12px; letter-spacing: 0.05em; }
-  .btn.go:hover { opacity: 0.9; }
-  .btn.go:active { transform: scale(0.98); }
-  .btn-row { display: flex; gap: 8px; margin-top: 0.75rem; }
-  .btn-row .btn { flex: 1; }
-  .status-bar { display: flex; align-items: center; gap: 7px; font-size: 12px;
-    color: var(--text-muted); margin-bottom: 1.25rem; }
-  .dot { width: 7px; height: 7px; border-radius: 50%; background: #EF9F27;
-    flex-shrink: 0; transition: background 0.3s; }
-  .dot.ok { background: var(--green); }
-  .dot.err { background: #E24B4A; }
-  .server-url { font-family: var(--mono); font-size: 13px; color: var(--accent);
-    background: var(--accent-bg); padding: 7px 12px; border-radius: 8px;
-    display: block; margin: 0.5rem 0 0.75rem; word-break: break-all; }
-  .section-label { font-size: 11px; font-weight: 600; text-transform: uppercase;
-    letter-spacing: 0.09em; color: var(--text-dim); margin-bottom: 0.5rem; }
-  .cue-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 1rem; }
-  .cue-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px;
-    border-radius: 9px; border: 0.5px solid var(--border); background: var(--surface2);
-    cursor: pointer; transition: all 0.12s; user-select: none; }
-  .cue-item:hover { border-color: var(--border-strong); }
-  .cue-item.active { background: rgba(55,138,221,0.12); border-color: rgba(55,138,221,0.4); }
-  .cue-num { font-size: 11px; font-weight: 600; font-family: var(--mono); color: var(--text-dim);
-    background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 5px;
-    min-width: 30px; text-align: center; }
-  .cue-item.active .cue-num { color: var(--accent); background: rgba(55,138,221,0.2); }
-  .cue-name { font-size: 14px; flex: 1; }
-  .cue-item.active .cue-name { color: #B5D4F4; }
-  .cue-color-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-  .cue-del { background: none; border: none; color: var(--text-dim); cursor: pointer;
-    font-size: 14px; padding: 2px 4px; border-radius: 4px; transition: color 0.12s; line-height: 1; }
-  .cue-del:hover { color: #E24B4A; }
-  .cue-move { display: flex; flex-direction: column; gap: 1px; }
-  .cue-btn { background: none; border: none; color: var(--text-dim); cursor: pointer;
-    font-size: 11px; padding: 1px 4px; border-radius: 3px; transition: color 0.12s; line-height: 1.2; }
-  .cue-btn:hover:not(:disabled) { color: var(--text); background: rgba(255,255,255,0.08); }
-  .cue-btn:disabled { opacity: 0.2; cursor: default; }
-  .cue-move { background: none; border: none; color: var(--text-dim); cursor: pointer;
-    font-size: 13px; padding: 2px 4px; border-radius: 4px; transition: color 0.12s; line-height: 1; }
-  .cue-move:hover { color: var(--text); }
-  .add-row { display: flex; gap: 8px; align-items: center; }
-  .add-row input { flex: 1; }
-  .swatches { display: flex; gap: 5px; align-items: center; }
-  .swatch { width: 20px; height: 20px; border-radius: 50%; cursor: pointer;
-    border: 2px solid transparent; transition: transform 0.1s; flex-shrink: 0; }
-  .swatch:hover { transform: scale(1.15); }
-  .swatch.sel { border-color: var(--text); }
-  .nav-row { display: flex; gap: 8px; margin-bottom: 10px; }
-  .nav-row .btn { flex: 1; font-size: 14px; padding: 11px; }
-  .ctrl-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1.25rem; }
-  .display-outer { min-height: 380px; border-radius: 14px; display: flex; flex-direction: column;
-    align-items: center; justify-content: center; padding: 2.5rem 2rem;
-    transition: background 0.5s ease; background: #111118; border: 0.5px solid var(--border); }
-  .disp-obra { font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
-    opacity: 0.45; margin-bottom: 0.5rem; text-align: center; }
-  .disp-num { font-size: 13px; font-weight: 500; opacity: 0.55; margin-bottom: 0.75rem; font-family: var(--mono); }
-  .disp-name { font-size: 46px; font-weight: 600; text-align: center; line-height: 1.1;
-    margin-bottom: 1.25rem; transition: opacity 0.2s; }
-  .disp-next { font-size: 14px; opacity: 0.45; text-align: center; }
-  .display-footer { text-align: center; margin-top: 0.75rem; font-size: 12px; color: var(--text-dim); }
-  @keyframes goFlash { 0%{opacity:0.1} 40%{opacity:1} 100%{opacity:1} }
-  .flash { animation: goFlash 0.4s ease forwards; }
-  .hidden { display: none !important; }
-  .audio-toggle { display: flex; align-items: center; gap: 8px; margin-top: 0.75rem;
-    font-size: 13px; color: var(--text-muted); cursor: pointer; user-select: none; }
-  .toggle-track { width: 36px; height: 20px; border-radius: 10px; background: var(--surface2);
-    border: 0.5px solid var(--border-strong); position: relative; transition: background 0.2s; flex-shrink: 0; }
-  .toggle-track.on { background: var(--green); border-color: var(--green); }
-  .toggle-thumb { position: absolute; width: 14px; height: 14px; border-radius: 50%;
-    background: #fff; top: 3px; left: 3px; transition: transform 0.2s; }
-  .toggle-track.on .toggle-thumb { transform: translateX(16px); }
-  @media (max-width: 400px) { .app { padding: 1rem 0.75rem; } .disp-name { font-size: 36px; } }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0f14;--surface:#1a1a24;--surface2:#22222e;
+  --border:rgba(255,255,255,0.1);--border-strong:rgba(255,255,255,0.18);
+  --text:#e8e8f0;--text-muted:rgba(232,232,240,0.5);--text-dim:rgba(232,232,240,0.32);
+  --accent:#378ADD;--accent-bg:rgba(55,138,221,0.15);
+  --green:#639922;--radius:10px;
+  --font:system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:'SF Mono','Fira Code',monospace;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh}
+.app{padding:1.25rem 1rem;max-width:520px;margin:0 auto}
+.logo{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--text-dim);margin-bottom:1.75rem;display:flex;align-items:center;gap:8px}
+.logo::after{content:'';flex:1;height:.5px;background:var(--border)}
+.tabs{display:flex;background:var(--surface);border-radius:var(--radius);
+  padding:4px;gap:4px;margin-bottom:1.5rem;border:.5px solid var(--border)}
+.tab{flex:1;padding:8px;text-align:center;font-size:13px;font-weight:500;
+  border-radius:7px;cursor:pointer;color:var(--text-muted);transition:all .15s;user-select:none}
+.tab.active{background:var(--surface2);color:var(--text)}
+.card{background:var(--surface);border:.5px solid var(--border);border-radius:12px;
+  padding:1.25rem 1.5rem;margin-bottom:1rem}
+.card h2{font-size:15px;font-weight:500;margin-bottom:.4rem}
+.card p{font-size:13px;color:var(--text-muted);line-height:1.55;margin-bottom:.75rem}
+input[type=text]{width:100%;padding:9px 13px;background:var(--surface2);
+  border:.5px solid var(--border-strong);border-radius:var(--radius);
+  color:var(--text);font-size:14px;font-family:var(--font);outline:none}
+input[type=text]:focus{border-color:var(--accent)}
+input[type=text]::placeholder{color:var(--text-dim)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;
+  padding:9px 16px;border-radius:var(--radius);border:.5px solid var(--border-strong);
+  background:transparent;color:var(--text);font-size:13px;font-weight:500;
+  font-family:var(--font);cursor:pointer;transition:background .12s,transform .1s;white-space:nowrap}
+.btn:hover{background:var(--surface2)}
+.btn:active{transform:scale(.97)}
+.btn.primary{background:var(--accent);color:#fff;border-color:transparent}
+.btn.primary:hover{opacity:.88}
+.btn.go{background:var(--green);color:#fff;border-color:transparent;
+  font-size:17px;font-weight:600;padding:16px;width:100%;border-radius:12px;letter-spacing:.05em}
+.btn.go:hover{opacity:.9}
+.btn.go:active{transform:scale(.98)}
+.status-bar{display:flex;align-items:center;gap:7px;font-size:12px;
+  color:var(--text-muted);margin-bottom:1.25rem}
+.dot{width:7px;height:7px;border-radius:50%;background:#EF9F27;flex-shrink:0;transition:background .3s}
+.dot.ok{background:var(--green)}.dot.err{background:#E24B4A}
+.section-label{font-size:11px;font-weight:600;text-transform:uppercase;
+  letter-spacing:.09em;color:var(--text-dim);margin-bottom:.5rem}
+.cue-list{display:flex;flex-direction:column;gap:6px;margin-bottom:1rem}
+.cue-item{display:flex;align-items:center;gap:10px;padding:9px 12px;
+  border-radius:9px;border:.5px solid var(--border);background:var(--surface2);
+  cursor:pointer;transition:all .12s;user-select:none}
+.cue-item:hover{border-color:var(--border-strong)}
+.cue-item.active{background:rgba(55,138,221,.12);border-color:rgba(55,138,221,.4)}
+.cue-num{font-size:11px;font-weight:600;font-family:var(--mono);color:var(--text-dim);
+  background:rgba(255,255,255,.06);padding:2px 6px;border-radius:5px;min-width:30px;text-align:center}
+.cue-item.active .cue-num{color:var(--accent);background:rgba(55,138,221,.2)}
+.cue-name{font-size:14px;flex:1}
+.cue-item.active .cue-name{color:#B5D4F4}
+.cue-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.cue-move{display:flex;flex-direction:column;gap:1px}
+.cbtn{background:none;border:none;color:var(--text-dim);cursor:pointer;
+  font-size:11px;padding:1px 4px;border-radius:3px;line-height:1.2;transition:color .12s}
+.cbtn:hover:not(:disabled){color:var(--text);background:rgba(255,255,255,.08)}
+.cbtn:disabled{opacity:.2;cursor:default}
+.cdel{background:none;border:none;color:var(--text-dim);cursor:pointer;
+  font-size:14px;padding:2px 4px;border-radius:4px;line-height:1;transition:color .12s}
+.cdel:hover{color:#E24B4A}
+.add-row{display:flex;gap:8px;align-items:center}
+.add-row input{flex:1}
+.swatches{display:flex;gap:5px;align-items:center}
+.swatch{width:20px;height:20px;border-radius:50%;cursor:pointer;
+  border:2px solid transparent;transition:transform .1s;flex-shrink:0}
+.swatch:hover{transform:scale(1.15)}
+.swatch.sel{border-color:var(--text)}
+.nav-row{display:flex;gap:8px;margin-bottom:10px}
+.nav-row .btn{flex:1;font-size:14px;padding:11px}
+.ctrl-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:1.25rem}
+.display-outer{min-height:380px;border-radius:14px;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;padding:2.5rem 2rem;
+  transition:background .5s;background:#111118;border:.5px solid var(--border)}
+.disp-obra{font-size:12px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;
+  opacity:.45;margin-bottom:.5rem;text-align:center}
+.disp-num{font-size:13px;font-weight:500;opacity:.55;margin-bottom:.75rem;font-family:var(--mono)}
+.disp-name{font-size:46px;font-weight:600;text-align:center;line-height:1.1;margin-bottom:1.25rem}
+.disp-next{font-size:14px;opacity:.45;text-align:center}
+.disp-footer{text-align:center;margin-top:.75rem;font-size:12px;color:var(--text-dim)}
+@keyframes goFlash{0%{opacity:.1}40%{opacity:1}100%{opacity:1}}
+.flash{animation:goFlash .4s ease forwards}
+.hidden{display:none!important}
+.audio-row{display:flex;align-items:center;gap:8px;margin-top:.75rem;
+  font-size:13px;color:var(--text-muted);cursor:pointer;user-select:none}
+.tog-track{width:36px;height:20px;border-radius:10px;background:var(--surface2);
+  border:.5px solid var(--border-strong);position:relative;transition:background .2s;flex-shrink:0}
+.tog-track.on{background:var(--green);border-color:var(--green)}
+.tog-thumb{position:absolute;width:14px;height:14px;border-radius:50%;
+  background:#fff;top:3px;left:3px;transition:transform .2s}
+.tog-track.on .tog-thumb{transform:translateX(16px)}
+@media(max-width:400px){.app{padding:1rem .75rem}.disp-name{font-size:36px}}
 </style>
 </head>
 <body>
 <div class="app">
 
-  <!-- SETUP -->
-  <div id="view-setup">
-    <div class="logo">OIANT — Cue Sender</div>
-    <div class="tabs">
-      <div class="tab active" id="tab-ctrl" onclick="switchTab('ctrl')">Control (escena)</div>
-      <div class="tab" id="tab-disp" onclick="switchTab('disp')">Display (iluminador)</div>
-    </div>
-
-    <div id="mode-ctrl">
-      <div class="card">
-        <h2>Modo control</h2>
-        <p>Si abriste la URL del servidor en el navegador, dejá el campo vacío. Solo ingresá IP si usás servidor local.</p>
-        <div class="section-label" style="margin-top:0.25rem">IP del servidor</div>
-        <input type="text" id="ctrl-server-ip" placeholder="Dejar vacío si usás la URL del servidor" style="margin-bottom:0.75rem"
-          onkeydown="if(event.key==='Enter')startController()">
-        <button class="btn primary" onclick="startController()" style="width:100%">&#9889; Iniciar control</button>
-      </div>
-    </div>
-
-    <div id="mode-disp" class="hidden">
-      <div class="card">
-        <h2>Modo display</h2>
-        <p>Si abriste la URL del servidor en el navegador, dejá el campo vacío. Solo ingresá IP si usás servidor local.</p>
-        <div class="section-label" style="margin-top:0.25rem">IP del servidor</div>
-        <input type="text" id="disp-server-ip" placeholder="Dejar vacío si usás la URL del servidor" style="margin-bottom:0.75rem"
-          onkeydown="if(event.key==='Enter')startDisplay()">
-        <label class="audio-toggle" onclick="toggleAudio()">
-          <div class="toggle-track" id="audio-track"><div class="toggle-thumb"></div></div>
-          <span id="audio-label">Sonido al recibir cue</span>
-        </label>
-        <button class="btn primary" onclick="startDisplay()" style="width:100%;margin-top:0.75rem">Conectar al control</button>
-      </div>
-    </div>
+<!-- SETUP -->
+<div id="v-setup">
+  <div class="logo">OIANT — Cue Sender</div>
+  <div class="tabs">
+    <div class="tab active" id="tab-ctrl" onclick="switchTab('ctrl')">Control (escena)</div>
+    <div class="tab" id="tab-disp" onclick="switchTab('disp')">Display (iluminador)</div>
   </div>
-
-  <!-- CONTROL -->
-  <div id="view-ctrl" class="hidden">
-    <div class="ctrl-header">
-      <div>
-        <div class="logo" style="margin-bottom:0.5rem">Control de cues</div>
-        <div class="status-bar">
-          <div class="dot" id="ctrl-dot"></div>
-          <span id="ctrl-status">Conectando...</span>
-        </div>
-      </div>
-      <button class="btn" onclick="goBack()" style="padding:7px 10px;font-size:12px">&#10005; Salir</button>
-    </div>
+  <div id="m-ctrl">
     <div class="card">
-      <div class="section-label">Obra</div>
-      <input type="text" id="obra-input" placeholder="Nombre de la obra..." style="margin-bottom:1rem" oninput="updateObra()">
-      <div class="section-label">Lista de cues</div>
-      <div class="cue-list" id="cue-list"></div>
-      <div>
-        <div class="section-label">Agregar cue</div>
-        <div class="add-row">
-          <input type="text" id="new-cue-name" placeholder="Nombre del cue..." onkeydown="if(event.key==='Enter')addCue()">
-          <div class="swatches" id="swatches"></div>
-          <button class="btn" onclick="addCue()" style="padding:9px 12px">+</button>
-        </div>
-      </div>
+      <h2>Modo control</h2>
+      <p>Usás este dispositivo desde escena para enviar cues al iluminador.</p>
+      <p style="margin-bottom:.4rem;font-size:13px;color:var(--text-muted)">IP del servidor (dejar vacío si usás la URL del servidor):</p>
+      <input type="text" id="ctrl-ip" placeholder="vacío = automático" style="margin-bottom:.75rem" onkeydown="if(event.key==='Enter')startCtrl()">
+      <button class="btn primary" onclick="startCtrl()" style="width:100%">&#9889; Iniciar control</button>
     </div>
-    <div class="nav-row">
-      <button class="btn" onclick="prevCue()">&larr; Anterior</button>
-      <button class="btn" onclick="nextCue()">Siguiente &rarr;</button>
-    </div>
-    <button class="btn go" onclick="sendGo()">&#9889;&nbsp;&nbsp;GO</button>
   </div>
+  <div id="m-disp" class="hidden">
+    <div class="card">
+      <h2>Modo display</h2>
+      <p>Conectate al control para recibir los cues en tiempo real.</p>
+      <p style="margin-bottom:.4rem;font-size:13px;color:var(--text-muted)">IP del servidor (dejar vacío si usás la URL del servidor):</p>
+      <input type="text" id="disp-ip" placeholder="vacío = automático" style="margin-bottom:.75rem" onkeydown="if(event.key==='Enter')startDisp()">
+      <div class="audio-row" onclick="toggleAudio()">
+        <div class="tog-track on" id="tog"><div class="tog-thumb"></div></div>
+        <span id="tog-label">Sonido al recibir cue</span>
+      </div>
+      <button class="btn primary" onclick="startDisp()" style="width:100%;margin-top:.75rem">Conectar al control</button>
+    </div>
+  </div>
+</div>
 
-  <!-- DISPLAY -->
-  <div id="view-disp" class="hidden">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
-      <div class="status-bar" style="margin:0">
-        <div class="dot" id="disp-dot"></div>
-        <span id="disp-status">Conectando...</span>
-      </div>
-      <button class="btn" onclick="goBack()" style="padding:6px 10px;font-size:12px">&#10005; Salir</button>
+<!-- CONTROL -->
+<div id="v-ctrl" class="hidden">
+  <div class="ctrl-header">
+    <div>
+      <div class="logo" style="margin-bottom:.5rem">Control de cues</div>
+      <div class="status-bar"><div class="dot" id="ctrl-dot"></div><span id="ctrl-st">Conectando...</span></div>
     </div>
-    <div class="display-outer" id="display-screen">
-      <div class="disp-obra" id="disp-obra"></div>
-      <div class="disp-num" id="disp-num" style="color:rgba(232,232,240,0.4)">Esperando señal...</div>
-      <div class="disp-name" id="disp-name" style="color:rgba(232,232,240,0.2)">—</div>
-      <div class="disp-next" id="disp-next"></div>
-    </div>
-    <div class="display-footer" id="disp-footer"></div>
+    <button class="btn" onclick="goBack()" style="padding:7px 10px;font-size:12px">&#10005; Salir</button>
   </div>
+  <div class="card">
+    <div class="section-label">Obra</div>
+    <input type="text" id="obra-inp" placeholder="Nombre de la obra..." style="margin-bottom:1rem" oninput="updateObra()">
+    <div class="section-label">Lista de cues</div>
+    <div class="cue-list" id="cue-list"></div>
+    <div class="section-label">Agregar cue</div>
+    <div class="add-row">
+      <input type="text" id="new-cue" placeholder="Nombre del cue..." onkeydown="if(event.key==='Enter')addCue()">
+      <div class="swatches" id="swatches"></div>
+      <button class="btn" onclick="addCue()" style="padding:9px 12px">+</button>
+    </div>
+  </div>
+  <div class="nav-row">
+    <button class="btn" onclick="prevCue()">&larr; Anterior</button>
+    <button class="btn" onclick="nextCue()">Siguiente &rarr;</button>
+  </div>
+  <button class="btn go" onclick="sendGo()">&#9889;&nbsp;&nbsp;GO</button>
+</div>
+
+<!-- DISPLAY -->
+<div id="v-disp" class="hidden">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+    <div class="status-bar" style="margin:0"><div class="dot" id="disp-dot"></div><span id="disp-st">Conectando...</span></div>
+    <button class="btn" onclick="goBack()" style="padding:6px 10px;font-size:12px">&#10005; Salir</button>
+  </div>
+  <div class="display-outer" id="disp-screen">
+    <div class="disp-obra" id="disp-obra"></div>
+    <div class="disp-num" id="disp-num" style="color:rgba(232,232,240,.4)">Esperando señal...</div>
+    <div class="disp-name" id="disp-name" style="color:rgba(232,232,240,.2)">—</div>
+    <div class="disp-next" id="disp-next"></div>
+  </div>
+  <div class="disp-footer" id="disp-footer"></div>
+</div>
 
 </div>
 <script>
-const COLORS = [
+var COLORS = [
   {hex:'#378ADD',name:'azul'},{hex:'#1D9E75',name:'verde'},{hex:'#D85A30',name:'naranja'},
-  {hex:'#9B59B6',name:'violeta'},{hex:'#EF9F27',name:'ámbar'},{hex:'#E24B4A',name:'rojo'},
-  {hex:'#778899',name:'gris'},{hex:'#e8e8f0',name:'blanco'},
+  {hex:'#9B59B6',name:'violeta'},{hex:'#EF9F27',name:'ambar'},{hex:'#E24B4A',name:'rojo'},
+  {hex:'#778899',name:'gris'},{hex:'#e8e8f0',name:'blanco'}
 ];
-let ws = null;
-const DEFAULT_CUES = [
+
+var DEFAULT_CUES = [
   {name:'Intro / oscuro', color:'#111118'},
   {name:'Apertura',       color:'#378ADD'},
-  {name:'Sección A',      color:'#1D9E75'},
+  {name:'Seccion A',      color:'#1D9E75'},
   {name:'Climax',         color:'#D85A30'},
-  {name:'Final / fade',   color:'#778899'},
+  {name:'Final / fade',   color:'#778899'}
 ];
-function loadCues() {
-  try {
-    const saved = localStorage.getItem('oiant_cues');
-    return saved ? JSON.parse(saved) : DEFAULT_CUES;
-  } catch(e) { return DEFAULT_CUES; }
-}
+
+var cues = DEFAULT_CUES.slice();
+var currentCue = -1;
+var selColor = COLORS[0].hex;
+var obraName = '';
+var audioEnabled = true;
+var audioCtx = null;
+var ws = null;
+
+// ── Storage ────────────────────────────────────────────────────────────────
 function saveCues() {
   try { localStorage.setItem('oiant_cues', JSON.stringify(cues)); } catch(e) {}
 }
-function loadObra() {
-  try { return localStorage.getItem('oiant_obra') || ''; } catch(e) { return ''; }
+function loadSaved() {
+  try {
+    var sc = localStorage.getItem('oiant_cues');
+    if (sc) {
+      var p = JSON.parse(sc);
+      if (Array.isArray(p) && p.length > 0) cues = p;
+    }
+    var so = localStorage.getItem('oiant_obra');
+    if (so) obraName = so;
+  } catch(e) { try { localStorage.clear(); } catch(e2) {} }
 }
 function saveObra() {
   try { localStorage.setItem('oiant_obra', obraName); } catch(e) {}
 }
-let cues = loadCues();
-let currentCue = -1;
-let selectedColor = COLORS[0].hex;
-let obraName = loadObra();
-let audioEnabled = true;
-let audioCtx = null;
-let role = null; // 'ctrl' or 'disp'
 
 // ── Audio ──────────────────────────────────────────────────────────────────
-function getAudioCtx() {
+function getAC() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   return audioCtx;
 }
-function beep(freq, duration, type = 'sine', vol = 0.4) {
+function beep(freq, dur, vol) {
   try {
-    const ctx = getAudioCtx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.type = type; osc.frequency.value = freq;
-    gain.gain.setValueAtTime(vol, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + duration);
+    var ctx = getAC();
+    var o = ctx.createOscillator();
+    var g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(vol || 0.4, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + dur);
+    o.start(ctx.currentTime); o.stop(ctx.currentTime + dur);
   } catch(e) {}
 }
-function beepPreview() { beep(660, 0.08, 'sine', 0.25); }
-function beepGo() {
-  beep(440, 0.12, 'sine', 0.5);
-  setTimeout(() => beep(880, 0.18, 'sine', 0.4), 110);
-}
+function beepPreview() { beep(660, 0.08, 0.25); }
+function beepGo() { beep(440, 0.12, 0.5); setTimeout(function(){ beep(880, 0.18, 0.4); }, 110); }
 function toggleAudio() {
   audioEnabled = !audioEnabled;
-  document.getElementById('audio-track').classList.toggle('on', audioEnabled);
-  document.getElementById('audio-label').textContent = audioEnabled ? 'Sonido al recibir cue' : 'Sonido desactivado';
-  // unlock AudioContext on user gesture
-  if (audioEnabled) getAudioCtx();
+  document.getElementById('tog').classList.toggle('on', audioEnabled);
+  document.getElementById('tog-label').textContent = audioEnabled ? 'Sonido al recibir cue' : 'Sonido desactivado';
+  if (audioEnabled) getAC();
 }
 
-// ── UI helpers ─────────────────────────────────────────────────────────────
+// ── UI ─────────────────────────────────────────────────────────────────────
 function show(id) { document.getElementById(id).classList.remove('hidden'); }
 function hide(id) { document.getElementById(id).classList.add('hidden'); }
 function setStatus(who, state, msg) {
-  const d = document.getElementById(who+'-dot');
-  d.className = 'dot' + (state==='ok'?' ok':state==='err'?' err':'');
-  document.getElementById(who+'-status').textContent = msg;
+  var d = document.getElementById(who + '-dot');
+  d.className = 'dot' + (state === 'ok' ? ' ok' : state === 'err' ? ' err' : '');
+  document.getElementById(who + '-st').textContent = msg;
 }
 function isDark(hex) {
-  const r=parseInt(hex.slice(1,3),16), g=parseInt(hex.slice(3,5),16), b=parseInt(hex.slice(5,7),16);
-  return (r*299+g*587+b*114)/1000 < 145;
+  var r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return (r*299 + g*587 + b*114) / 1000 < 145;
 }
 function switchTab(t) {
-  document.getElementById('tab-ctrl').classList.toggle('active', t==='ctrl');
-  document.getElementById('tab-disp').classList.toggle('active', t==='disp');
-  t==='ctrl' ? (show('mode-ctrl'), hide('mode-disp')) : (hide('mode-ctrl'), show('mode-disp'));
+  document.getElementById('tab-ctrl').classList.toggle('active', t === 'ctrl');
+  document.getElementById('tab-disp').classList.toggle('active', t === 'disp');
+  if (t === 'ctrl') { show('m-ctrl'); hide('m-disp'); }
+  else { hide('m-ctrl'); show('m-disp'); }
 }
 
 // ── WebSocket ──────────────────────────────────────────────────────────────
-function connect(ip, onOpen, onMessage, onClose) {
-  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
-  const url = ip ? `${proto}://${ip}:8766` : `${proto}://${location.host}/ws`;
-  try { ws = new WebSocket(url); } catch(e) { return null; }
+function wsConnect(ip, onOpen, onMsg, onClose) {
+  var proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  var url = ip ? (proto + '://' + ip + ':8766') : (proto + '://' + location.host + '/ws');
+  ws = new WebSocket(url);
   ws.onopen = onOpen;
-  ws.onmessage = e => onMessage(JSON.parse(e.data));
+  ws.onmessage = function(e) { onMsg(JSON.parse(e.data)); };
   ws.onclose = onClose;
-  ws.onerror = () => {};
-  return ws;
+  ws.onerror = function() {};
 }
-function send(data) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(data)); }
+function wsSend(data) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(data)); }
 
 // ── Controller ─────────────────────────────────────────────────────────────
-function startController() {
-  const ip = document.getElementById('ctrl-server-ip').value.trim();
-  role = 'ctrl';
-  hide('view-setup'); show('view-ctrl');
-  document.getElementById('obra-input').value = obraName;
-  loadCues(); loadObra();
-  const obraInp = document.getElementById('obra-input');
-  if (obraInp) obraInp.value = obraName;
+function startCtrl() {
+  var ip = document.getElementById('ctrl-ip').value.trim();
+  loadSaved();
+  hide('v-setup'); show('v-ctrl');
+  document.getElementById('obra-inp').value = obraName;
   renderCues(); renderSwatches();
-  setStatus('ctrl', 'wait', 'Conectando al servidor...');
-
-  connect(ip,
-    () => { setStatus('ctrl', 'ok', 'Conectado ✓  — display puede unirse'); },
-    () => {},
-    () => { setStatus('ctrl', 'err', 'Conexión perdida — verificá el servidor'); }
+  setStatus('ctrl', 'wait', 'Conectando...');
+  wsConnect(ip,
+    function() { setStatus('ctrl', 'ok', 'Conectado \u2713  \u2014 display puede unirse'); },
+    function() {},
+    function() { setStatus('ctrl', 'err', 'Conexion perdida'); }
   );
 }
 
 // ── Display ────────────────────────────────────────────────────────────────
-function startDisplay() {
-  const ip = document.getElementById('disp-server-ip').value.trim();
-  role = 'disp';
-  // unlock audio on this gesture
-  if (audioEnabled) getAudioCtx();
-  hide('view-setup'); show('view-disp');
+function startDisp() {
+  var ip = document.getElementById('disp-ip').value.trim();
+  if (audioEnabled) getAC();
+  hide('v-setup'); show('v-disp');
   setStatus('disp', 'wait', 'Conectando...');
-  document.getElementById('disp-footer').textContent = `Servidor: ${ip}`;
-
-  connect(ip,
-    () => { setStatus('disp', 'ok', 'Conectado ✓  — esperando cues'); },
-    (data) => handleDisplay(data),
-    () => { setStatus('disp', 'err', 'Conexión perdida'); }
+  document.getElementById('disp-footer').textContent = ip ? ('Servidor: ' + ip) : location.host;
+  wsConnect(ip,
+    function() { setStatus('disp', 'ok', 'Conectado \u2713  \u2014 esperando cues'); },
+    function(d) { handleDisp(d); },
+    function() { setStatus('disp', 'err', 'Conexion perdida'); }
   );
 }
 
-function handleDisplay(d) {
-  const screen = document.getElementById('display-screen');
-  const obraEl = document.getElementById('disp-obra');
-  const numEl  = document.getElementById('disp-num');
-  const nameEl = document.getElementById('disp-name');
-  const nextEl = document.getElementById('disp-next');
-
+function handleDisp(d) {
+  var screen = document.getElementById('disp-screen');
+  var obraEl = document.getElementById('disp-obra');
+  var numEl  = document.getElementById('disp-num');
+  var nameEl = document.getElementById('disp-name');
+  var nextEl = document.getElementById('disp-next');
   if (d.type === 'go') {
-    const dark = isDark(d.cue.color || '#111118');
-    const fg = dark ? '#e8e8f0' : '#111118';
-    const fgM = dark ? 'rgba(232,232,240,0.5)' : 'rgba(17,17,24,0.45)';
+    var dark = isDark(d.cue.color || '#111118');
+    var fg = dark ? '#e8e8f0' : '#111118';
+    var fgm = dark ? 'rgba(232,232,240,0.5)' : 'rgba(17,17,24,0.45)';
     screen.style.background = d.cue.color || '#111118';
     screen.style.color = fg;
     obraEl.textContent = d.obra || '';
-    obraEl.style.color = fgM;
-    numEl.textContent  = `Q${d.num} / ${d.total}`;
-    numEl.style.color  = fgM;
+    obraEl.style.color = fgm;
+    numEl.textContent = 'Q' + d.num + ' / ' + d.total;
+    numEl.style.color = fgm;
     nameEl.textContent = d.cue.name;
     nameEl.style.color = fg;
-    nextEl.textContent = d.next ? '▸ Siguiente: ' + d.next.name : '— Último cue';
-    nextEl.style.color = fgM;
+    nextEl.textContent = d.next ? '\u25b8 Siguiente: ' + d.next.name : '\u2014 \xdaltimo cue';
+    nextEl.style.color = fgm;
     nameEl.classList.remove('flash');
     void nameEl.offsetWidth;
     nameEl.classList.add('flash');
     if (audioEnabled) beepGo();
   } else if (d.type === 'preview') {
-    numEl.textContent  = `En espera: Q${d.num} / ${d.total}`;
+    numEl.textContent = 'En espera: Q' + d.num + ' / ' + d.total;
     nameEl.textContent = d.cue.name;
     nameEl.style.color = 'rgba(232,232,240,0.3)';
     nextEl.textContent = 'Esperando GO...';
@@ -377,125 +345,104 @@ function handleDisplay(d) {
   }
 }
 
-// ── Persistence ───────────────────────────────────────────────────────────
-function saveCues() {
-  try { localStorage.setItem('oiant_cues', JSON.stringify(cues)); } catch(e) {}
-}
-function loadCues() {
-  try {
-    const saved = localStorage.getItem('oiant_cues');
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) cues = parsed;
-    }
-  } catch(e) { localStorage.removeItem('oiant_cues'); }
-}
-function saveObra() {
-  try { localStorage.setItem('oiant_obra', obraName); } catch(e) {}
-}
-function loadObra() {
-  try {
-    const saved = localStorage.getItem('oiant_obra');
-    if (saved && typeof saved === 'string') obraName = saved;
-  } catch(e) {}
-}
-
 // ── Cues ───────────────────────────────────────────────────────────────────
 function renderCues() {
-  const list = document.getElementById('cue-list');
+  var list = document.getElementById('cue-list');
   list.innerHTML = '';
-  cues.forEach((c, i) => {
-    const div = document.createElement('div');
+  cues.forEach(function(c, i) {
+    var div = document.createElement('div');
     div.className = 'cue-item' + (i === currentCue ? ' active' : '');
     div.innerHTML =
-      `<span class="cue-num">Q${i+1}</span>` +
-      `<span class="cue-name">${c.name}</span>` +
-      `<span class="cue-color-dot" style="background:${c.color}"></span>` +
-      `<span class="cue-move">` +
-        `<button class="cue-btn" onclick="moveCue(event,${i},-1)" ${i===0?'disabled':''}>&#8593;</button>` +
-        `<button class="cue-btn" onclick="moveCue(event,${i},1)" ${i===cues.length-1?'disabled':''}>&#8595;</button>` +
-      `</span>` +
-      `<button class="cue-del" onclick="removeCue(event,${i})">&#10005;</button>`;
-    div.addEventListener('click', e => { if (!e.target.closest('.cue-del') && !e.target.closest('.cue-move')) selectCue(i); });
+      '<span class="cue-num">Q' + (i+1) + '</span>' +
+      '<span class="cue-name">' + c.name + '</span>' +
+      '<span class="cue-dot" style="background:' + c.color + '"></span>' +
+      '<span class="cue-move">' +
+        '<button class="cbtn" onclick="moveCue(event,' + i + ',-1)"' + (i===0?' disabled':'') + '>&#8593;</button>' +
+        '<button class="cbtn" onclick="moveCue(event,' + i + ',1)"' + (i===cues.length-1?' disabled':'') + '>&#8595;</button>' +
+      '</span>' +
+      '<button class="cdel" onclick="delCue(event,' + i + ')">&#10005;</button>';
+    div.addEventListener('click', function(e) {
+      if (!e.target.closest('.cdel') && !e.target.closest('.cue-move')) selCue(i);
+    });
     list.appendChild(div);
   });
 }
+
 function renderSwatches() {
-  const el = document.getElementById('swatches');
+  var el = document.getElementById('swatches');
   el.innerHTML = '';
-  COLORS.forEach(c => {
-    const s = document.createElement('div');
-    s.className = 'swatch' + (c.hex === selectedColor ? ' sel' : '');
-    s.style.background = c.hex; s.title = c.name;
-    s.onclick = () => { selectedColor = c.hex; renderSwatches(); };
+  COLORS.forEach(function(c) {
+    var s = document.createElement('div');
+    s.className = 'swatch' + (c.hex === selColor ? ' sel' : '');
+    s.style.background = c.hex;
+    s.title = c.name;
+    s.onclick = function() { selColor = c.hex; renderSwatches(); };
     el.appendChild(s);
   });
 }
+
 function addCue() {
-  const inp = document.getElementById('new-cue-name');
-  const name = inp.value.trim();
+  var inp = document.getElementById('new-cue');
+  var name = inp.value.trim();
   if (!name) { inp.focus(); return; }
-  cues.push({name, color: selectedColor});
-  inp.value = ''; saveCues(); renderCues();
+  cues.push({name: name, color: selColor});
+  inp.value = '';
+  saveCues(); renderCues();
 }
-function removeCue(e, i) {
+
+function delCue(e, i) {
   e.stopPropagation();
   cues.splice(i, 1);
   if (currentCue >= cues.length) currentCue = cues.length - 1;
   saveCues(); renderCues();
 }
+
 function moveCue(e, i, dir) {
   e.stopPropagation();
-  const j = i + dir;
+  var j = i + dir;
   if (j < 0 || j >= cues.length) return;
-  [cues[i], cues[j]] = [cues[j], cues[i]];
+  var tmp = cues[i]; cues[i] = cues[j]; cues[j] = tmp;
   if (currentCue === i) currentCue = j;
   else if (currentCue === j) currentCue = i;
   saveCues(); renderCues();
 }
-function moveCue(e, i, dir) {
-  e.stopPropagation();
-  const j = i + dir;
-  if (j < 0 || j >= cues.length) return;
-  [cues[i], cues[j]] = [cues[j], cues[i]];
-  if (currentCue === i) currentCue = j;
-  else if (currentCue === j) currentCue = i;
-  saveCues();
-  renderCues();
-}
-function selectCue(i) {
+
+function selCue(i) {
   currentCue = i; renderCues();
-  send({type:'preview', cue:cues[i], num:i+1, total:cues.length, obra:obraName});
+  wsSend({type:'preview', cue:cues[i], num:i+1, total:cues.length, obra:obraName});
 }
-function prevCue() { if (currentCue > 0) selectCue(currentCue - 1); }
-function nextCue() { if (currentCue < cues.length - 1) selectCue(currentCue + 1); }
-function updateObra() { obraName = document.getElementById('obra-input').value; saveObra(); }
+
+function prevCue() { if (currentCue > 0) selCue(currentCue - 1); }
+function nextCue() { if (currentCue < cues.length - 1) selCue(currentCue + 1); }
+
+function updateObra() {
+  obraName = document.getElementById('obra-inp').value;
+  saveObra();
+}
+
 function sendGo() {
   if (currentCue < 0 && cues.length > 0) { currentCue = 0; renderCues(); }
   if (currentCue < 0) return;
-  send({type:'go', cue:cues[currentCue], num:currentCue+1, total:cues.length,
+  wsSend({type:'go', cue:cues[currentCue], num:currentCue+1, total:cues.length,
     next: currentCue+1 < cues.length ? cues[currentCue+1] : null, obra:obraName});
-  const btn = document.querySelector('.btn.go');
-  btn.style.transform = 'scale(0.97)';
-  setTimeout(() => btn.style.transform = '', 130);
+  var btn = document.querySelector('.btn.go');
+  btn.style.transform = 'scale(.97)';
+  setTimeout(function(){ btn.style.transform = ''; }, 130);
 }
 
 function goBack() {
   if (ws) { try { ws.close(); } catch(e) {} ws = null; }
-  hide('view-ctrl'); hide('view-disp'); show('view-setup');
+  hide('v-ctrl'); hide('v-disp'); show('v-setup');
 }
 
 // ── Keyboard ───────────────────────────────────────────────────────────────
-document.addEventListener('keydown', e => {
-  if (document.getElementById('view-ctrl').classList.contains('hidden')) return;
+document.addEventListener('keydown', function(e) {
+  if (document.getElementById('v-ctrl').classList.contains('hidden')) return;
   if (e.target.tagName === 'INPUT') return;
   if (e.code==='Space'||e.code==='Enter') { e.preventDefault(); sendGo(); }
   if (e.code==='ArrowRight'||e.code==='ArrowDown') { e.preventDefault(); nextCue(); }
   if (e.code==='ArrowLeft'||e.code==='ArrowUp')    { e.preventDefault(); prevCue(); }
 });
-
-// init audio toggle UI
-document.getElementById('audio-track').classList.add('on');
 </script>
 </body>
 </html>
