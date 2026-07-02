@@ -384,8 +384,11 @@ function saveCues() {
 function loadCues() {
   try {
     const saved = localStorage.getItem('oiant_cues');
-    if (saved) { cues = JSON.parse(saved); }
-  } catch(e) {}
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (Array.isArray(parsed) && parsed.length > 0) cues = parsed;
+    }
+  } catch(e) { localStorage.removeItem('oiant_cues'); }
 }
 function saveObra() {
   try { localStorage.setItem('oiant_obra', obraName); } catch(e) {}
@@ -393,7 +396,7 @@ function saveObra() {
 function loadObra() {
   try {
     const saved = localStorage.getItem('oiant_obra');
-    if (saved) { obraName = saved; }
+    if (saved && typeof saved === 'string') obraName = saved;
   } catch(e) {}
 }
 
